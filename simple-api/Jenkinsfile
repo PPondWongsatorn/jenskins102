@@ -99,9 +99,7 @@ pipeline {
                         
                         sleep 5
                         . robot-venv/bin/activate
-                        pip install --upgrade pip
-                        pip install robotframework requests
-                        
+                        pip install -r requirements.txt
                         mkdir -p ../robot-results
                         robot --variable BASE_URL:http://localhost:5002 \
                               --outputdir ../robot-results tests/
