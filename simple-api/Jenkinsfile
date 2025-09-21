@@ -49,9 +49,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
+                dir("simple-api"){
                 script {
                     def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
                     env.DOCKER_IMAGE_ID = image.id
+                }
                 }
             }
         }
