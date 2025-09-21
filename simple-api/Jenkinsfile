@@ -21,7 +21,7 @@ pipeline {
                 echo 'Installing dependencies...'
                 sh '''
                     ls -la
-                    cd simeple-api
+                    cd simple-api
                     python3 -m venv venv
                     . venv/bin/activate
                     pip install -r requirements.txt
