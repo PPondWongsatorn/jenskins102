@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "simple-api"
         DOCKER_TAG = "${BUILD_NUMBER}"
-        REGISTRY = "ghcr.io/PPondWongsatorn" // เปลี่ยนเป็น registry ของคุณ
+        REGISTRY = "ghcr.io/PPondWongsatorn"   // เปลี่ยนเป็น registry ของคุณ
         CODE_VALUE = "STUDENT_CODE_${BUILD_NUMBER}"
     }
     
@@ -19,25 +19,26 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing dependencies...'
-                sh '''
-                    ls -la
-                    cd simple-api
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install -r requirements.txt
-                '''
+                dir('simple-api') {
+                    sh '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    '''
+                }
             }
         }
         
         stage('Unit Tests') {
             steps {
                 echo 'Running unit tests...'
-                sh '''
-                    ls -la
-                    cd simple-api
-                    . venv/bin/activate
-                    python -m pytest test_app.py -v --junitxml=test-results.xml
-                '''
+                dir('simple-api') {
+                    sh '''
+                        . venv/bin/activate
+                        python -m pytest test_app.py -v --junitxml=test-results.xml
+                    '''
+                }
             }
             post {
                 always {
@@ -49,11 +50,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
-                dir("simple-api"){
-                script {
-                    def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                    env.DOCKER_IMAGE_ID = image.id
-                }
+                dir("simple-api") {
+                    script {
+                        def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        env.DOCKER_IMAGE_ID = image.id
+                    }
                 }
             }
         }
@@ -62,18 +63,14 @@ pipeline {
             steps {
                 echo 'Testing Docker container...'
                 sh '''
-                    # Run container in background
                     docker run -d --name test-container -p 5001:5000 \
                         -e CODE_VALUE="${CODE_VALUE}" \
                         ${DOCKER_IMAGE}:${DOCKER_TAG}
                     
-                    # Wait for container to start
                     sleep 10
                     
-                    # Test health endpoint
                     curl -f http://localhost:5001/health
                     
-                    # Test plus endpoint
                     RESULT=$(curl -s http://localhost:5001/plus/5/6 | python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
                     if [ "$RESULT" != "11" ]; then
                         echo "Plus API test failed"
@@ -94,30 +91,24 @@ pipeline {
         stage('Robot Tests') {
             steps {
                 echo 'Running Robot Framework tests...'
-                sh '''
-                    # Clone robot test repository
-                    if [ -d "jenskins102" ]; then
-                        rm -rf jenskins102
-                    fi
-                    git clone https://github.com/PPondWongsatorn/jenskins102.git
-                    
-                    # Start API container for testing
-                    docker run -d --name robot-test-container -p 5002:5000 \
-                        -e CODE_VALUE="${CODE_VALUE}" \
-                        ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    
-                    sleep 10
-                    
-                    # Setup and run robot tests
-                    cd jenskins102
-                    python3 -m venv robot-venv
-                    . robot-venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt || pip install robotframework requests
-                    mkdir -p ../robot-results
-                    robot --variable BASE_URL:http://localhost:5002 \
-                          --outputdir ../robot-results tests/
-                '''
+                dir('simple-api-robot') {
+                    sh '''
+                        docker run -d --name robot-test-container -p 5002:5000 \
+                            -e CODE_VALUE="${CODE_VALUE}" \
+                            ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        
+                        sleep 10
+                        
+                        python3 -m venv robot-venv
+                        . robot-venv/bin/activate
+                        pip install --upgrade pip
+                        pip install robotframework requests
+                        
+                        mkdir -p ../robot-results
+                        robot --variable BASE_URL:http://localhost:5002 \
+                              --outputdir ../robot-results tests/
+                    '''
+                }
             }
             post {
                 always {
@@ -199,8 +190,8 @@ pipeline {
             echo 'Cleaning up...'
             sh '''
                 docker system prune -f || true
-                rm -rf venv || true
-                rm -rf jenskins102 || true
+                rm -rf simple-api/venv || true
+                rm -rf simple-api-robot/robot-venv || true
             '''
         }
         success {
