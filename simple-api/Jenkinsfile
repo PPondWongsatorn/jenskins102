@@ -1,0 +1,205 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = "simple-api"
+        DOCKER_TAG = "${BUILD_NUMBER}"
+        REGISTRY = "ghcr.io/yourusername" // เปลี่ยนเป็น registry ของคุณ
+        CODE_VALUE = "STUDENT_CODE_${BUILD_NUMBER}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out source code...'
+                checkout scm
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing dependencies...'
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+        
+        stage('Unit Tests') {
+            steps {
+                echo 'Running unit tests...'
+                sh '''
+                    . venv/bin/activate
+                    python -m pytest test_app.py -v --junitxml=test-results.xml
+                '''
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                echo 'Building Docker image...'
+                script {
+                    def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                    env.DOCKER_IMAGE_ID = image.id
+                }
+            }
+        }
+        
+        stage('Test Docker Container') {
+            steps {
+                echo 'Testing Docker container...'
+                sh '''
+                    # Run container in background
+                    docker run -d --name test-container -p 5001:5000 \
+                        -e CODE_VALUE="${CODE_VALUE}" \
+                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                    
+                    # Wait for container to start
+                    sleep 10
+                    
+                    # Test health endpoint
+                    curl -f http://localhost:5001/health
+                    
+                    # Test plus endpoint
+                    RESULT=$(curl -s http://localhost:5001/plus/5/6 | python3 -c "import sys, json; print(json.load(sys.stdin)['result'])")
+                    if [ "$RESULT" != "11" ]; then
+                        echo "Plus API test failed"
+                        exit 1
+                    fi
+                    
+                    echo "Container tests passed"
+                '''
+            }
+            post {
+                always {
+                    sh 'docker stop test-container || true'
+                    sh 'docker rm test-container || true'
+                }
+            }
+        }
+        
+        stage('Robot Tests') {
+            steps {
+                echo 'Running Robot Framework tests...'
+                sh '''
+                    # Clone robot test repository
+                    if [ -d "simple-api-robot" ]; then
+                        rm -rf simple-api-robot
+                    fi
+                    git clone https://github.com/yourusername/simple-api-robot.git
+                    
+                    # Start API container for testing
+                    docker run -d --name robot-test-container -p 5002:5000 \
+                        -e CODE_VALUE="${CODE_VALUE}" \
+                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                    
+                    sleep 10
+                    
+                    # Run robot tests
+                    cd simple-api-robot
+                    python3 -m venv robot-venv
+                    . robot-venv/bin/activate
+                    pip install robotframework requests
+                    robot --variable BASE_URL:http://localhost:5002 \
+                          --outputdir ../robot-results tests/
+                '''
+            }
+            post {
+                always {
+                    sh 'docker stop robot-test-container || true'
+                    sh 'docker rm robot-test-container || true'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'robot-results',
+                        reportFiles: 'report.html',
+                        reportName: 'Robot Test Report'
+                    ])
+                }
+            }
+        }
+        
+        stage('Push to Registry') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Pushing image to registry...'
+                script {
+                    docker.withRegistry('https://ghcr.io', 'github-token') {
+                        def image = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        image.push()
+                        image.push('latest')
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to Test (VM2)') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying to test environment...'
+                sshagent(['vm2-ssh-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no user@vm2-ip "
+                            docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker stop simple-api-test || true
+                            docker rm simple-api-test || true
+                            docker run -d --name simple-api-test -p 5000:5000 \
+                                -e CODE_VALUE='${CODE_VALUE}' \
+                                ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        "
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy to Pre-Prod (VM3)') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying to pre-production environment...'
+                sshagent(['vm3-ssh-key']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no user@vm3-ip "
+                            docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker stop simple-api-preprod || true
+                            docker rm simple-api-preprod || true
+                            docker run -d --name simple-api-preprod -p 5000:5000 \
+                                -e CODE_VALUE='${CODE_VALUE}' \
+                                ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        "
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Cleaning up...'
+            sh '''
+                docker system prune -f || true
+                rm -rf venv || true
+                rm -rf simple-api-robot || true
+            '''
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
