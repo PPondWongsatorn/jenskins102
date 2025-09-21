@@ -2,7 +2,7 @@
 Documentation    API Testing for Simple API
 Library          RequestsLibrary
 Library          Collections
-Variables        keywords.robot
+Variables        tests/keywords.robot
 
 *** Variables ***
 ${BASE_URL}      http://localhost:5000
