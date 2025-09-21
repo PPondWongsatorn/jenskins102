@@ -99,6 +99,8 @@ pipeline {
                         
                         sleep 5
                         python3 -m venv robot-venv
+                        ls -la
+                        pwd
                         . robot-venv/bin/activate
                         pip install -r requirements.txt
                         mkdir -p ../robot-results
