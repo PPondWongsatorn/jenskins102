@@ -20,6 +20,7 @@ pipeline {
             steps {
                 echo 'Installing dependencies...'
                 sh '''
+                    ls -la
                     cd simeple-api
                     python3 -m venv venv
                     . venv/bin/activate
