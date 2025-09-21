@@ -96,10 +96,10 @@ pipeline {
                 echo 'Running Robot Framework tests...'
                 sh '''
                     # Clone robot test repository
-                    if [ -d "simple-api-robot" ]; then
-                        rm -rf simple-api-robot
+                    if [ -d "jenskins102" ]; then
+                        rm -rf jenskins102
                     fi
-                    git clone https://github.com/yourusername/simple-api-robot.git
+                    git clone https://github.com/PPondWongsatorn/jenskins102.git
                     
                     # Start API container for testing
                     docker run -d --name robot-test-container -p 5002:5000 \
@@ -108,11 +108,13 @@ pipeline {
                     
                     sleep 10
                     
-                    # Run robot tests
-                    cd simple-api-robot
+                    # Setup and run robot tests
+                    cd jenskins102
                     python3 -m venv robot-venv
                     . robot-venv/bin/activate
-                    pip install robotframework requests
+                    pip install --upgrade pip
+                    pip install -r requirements.txt || pip install robotframework requests
+                    mkdir -p ../robot-results
                     robot --variable BASE_URL:http://localhost:5002 \
                           --outputdir ../robot-results tests/
                 '''
@@ -198,7 +200,7 @@ pipeline {
             sh '''
                 docker system prune -f || true
                 rm -rf venv || true
-                rm -rf simple-api-robot || true
+                rm -rf jenskins102 || true
             '''
         }
         success {
