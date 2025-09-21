@@ -33,6 +33,7 @@ pipeline {
             steps {
                 echo 'Running unit tests...'
                 sh '''
+                    ls -la
                     . venv/bin/activate
                     python -m pytest test_app.py -v --junitxml=test-results.xml
                 '''
