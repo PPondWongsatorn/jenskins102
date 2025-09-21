@@ -97,9 +97,7 @@ pipeline {
                             -e CODE_VALUE="${CODE_VALUE}" \
                             ${DOCKER_IMAGE}:${DOCKER_TAG}
                         
-                        sleep 10
-                        
-                        python3 -m venv robot-venv
+                        sleep 5
                         . robot-venv/bin/activate
                         pip install --upgrade pip
                         pip install robotframework requests
