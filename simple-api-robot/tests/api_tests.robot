@@ -2,7 +2,7 @@
 Documentation    API Testing for Simple API
 Library          RequestsLibrary
 Library          Collections
-Variables        tests/keywords.robot
+Resource         keywords.robot
 
 *** Variables ***
 ${BASE_URL}      http://localhost:5000
@@ -91,13 +91,8 @@ Test Plus API Response Format
     Delete All Sessions
 
 Test API Performance
-    [Documentation]    Test API response time is acceptable
-    [Tags]            performance
-    Create Session    api    ${BASE_URL}    timeout=${TIMEOUT}
-    ${start_time}=    Get Time    epoch
-    ${response}=      GET On Session    api    /plus/100/200
-    ${end_time}=      Get Time    epoch
-    ${response_time}= Evaluate    ${end_time} - ${start_time}
-    Should Be True    ${response_time} < 5    Response time should be less than 5 seconds
-    Should Be Equal As Strings    ${response.status_code}    200
-    Delete All Sessions
+    ${start}=    Evaluate    import('time').time()
+    ${response}=    GET    ${BASE_URL}/plus/5/6
+    ${end}=    Evaluate    import('time').time()
+    ${response_time}=    Evaluate    ${end} - ${start}
+    Should Be True    ${response_time} < 1.0
