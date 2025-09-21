@@ -98,9 +98,9 @@ pipeline {
                             ${DOCKER_IMAGE}:${DOCKER_TAG}
                         
                         sleep 5
-                        python3 -m venv robot-venv
                         ls -la
                         pwd
+                        python3 -m venv robot-venv
                         . robot-venv/bin/activate
                         pip install -r requirements.txt
                         mkdir -p ../robot-results
