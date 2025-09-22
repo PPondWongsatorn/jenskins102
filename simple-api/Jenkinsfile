@@ -111,14 +111,16 @@ pipeline {
                 always {
                     sh 'docker stop robot-test-container || true'
                     sh 'docker rm robot-test-container || true'
-                    publishHTML([
+                    publishHTML(target: [
                         allowMissing: false,
-                        alwaysLinkToLastBuild: true,
                         keepAll: true,
+                        alwaysLinkToLastBuild: true,
                         reportDir: 'robot-results',
                         reportFiles: 'report.html',
-                        reportName: 'Robot Test Report'
-                    ])
+                        reportName: 'Robot Test Report',
+                        escapeUnderscores: false,   // ป้องกัน style/script error บางส่วน
+                    includes: '**/*'
+            ])
                 }
             }
         }
