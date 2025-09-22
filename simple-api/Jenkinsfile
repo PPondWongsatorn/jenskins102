@@ -131,7 +131,7 @@ pipeline {
                 echo 'Pushing image to registry...'
                 withCredentials([usernamePassword(credentialsId: 'git_hub', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
                     sh '''
-                        echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USER}" --password-stdin
+                        echoGITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USER}" --password-stdin
                         docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                         docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY}/${DOCKER_IMAGE}:latest
                         docker push ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
@@ -182,7 +182,7 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Test (VM2)') {
+    }
             steps {
                 echo 'Deploying to test environment (VM2)...'
                 sshagent(['vm2']) {
