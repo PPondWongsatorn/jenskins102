@@ -124,9 +124,6 @@ pipeline {
         }
 
         stage('Push to Registry') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo 'Pushing image to registry...'
                 script {
@@ -158,9 +155,6 @@ pipeline {
         }
 
         stage('Deploy to Pre-Prod (VM3)') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo 'Deploying to pre-production environment (VM3)...'
                 sshagent(['vm3']) {
