@@ -4,7 +4,8 @@ pipeline {
     environment {
         DOCKER_IMAGE = "simple-api"
         DOCKER_TAG = "${BUILD_NUMBER}"
-        REGISTRY = "ghcr.io/PPondWongsatorn"   // เปลี่ยนเป็น registry ของคุณ
+        REGISTRY = "ghcr.io/PPondWongsatorn"
+        FULL_IMAGE = "${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}"
         CODE_VALUE = "STUDENT_CODE_${BUILD_NUMBER}"
     }
 
@@ -20,12 +21,12 @@ pipeline {
             steps {
                 echo 'Installing dependencies...'
                 dir('simple-api') {
-                    sh '''
+                    sh """
                         python3 -m venv venv
                         . venv/bin/activate
                         pip install --upgrade pip
                         pip install -r requirements.txt
-                    '''
+                    """
                 }
             }
         }
@@ -34,10 +35,10 @@ pipeline {
             steps {
                 echo 'Running unit tests...'
                 dir('simple-api') {
-                    sh '''
+                    sh """
                         . venv/bin/activate
                         python -m pytest test_app.py -v --junitxml=test-results.xml
-                    '''
+                    """
                 }
             }
             post {
@@ -46,26 +47,25 @@ pipeline {
                 }
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
                 dir("simple-api") {
                     script {
-                        def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        def image = docker.build("${env.FULL_IMAGE}")
                         env.DOCKER_IMAGE_ID = image.id
                     }
                 }
             }
         }
-
+        }
         stage('Test Docker Container') {
             steps {
                 echo 'Testing Docker container...'
-                sh '''
+                sh """
                     docker run -d --name test-container -p 5001:5000 \
                         -e CODE_VALUE="${CODE_VALUE}" \
-                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        ${FULL_IMAGE}
 
                     sleep 10
 
@@ -78,7 +78,7 @@ pipeline {
                     fi
 
                     echo "Container tests passed"
-                '''
+                """
             }
             post {
                 always {
@@ -87,15 +87,15 @@ pipeline {
                 }
             }
         }
-
+        }
         stage('Robot Tests') {
             steps {
                 echo 'Running Robot Framework tests...'
                 dir('simple-api-robot') {
-                    sh '''
+                    sh """
                         docker run -d --name robot-test-container -p 5002:5000 \
                             -e CODE_VALUE="${CODE_VALUE}" \
-                            ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            ${FULL_IMAGE}
 
                         sleep 5
                         python3 -m venv robot-venv
@@ -104,7 +104,7 @@ pipeline {
                         mkdir -p ../robot-results
                         robot --variable BASE_URL:http://localhost:5002 \
                               --outputdir ../robot-results tests/
-                    '''
+                    """
                 }
             }
             post {
@@ -122,7 +122,7 @@ pipeline {
                 }
             }
         }
-
+        }
         stage('Push to Registry') {
             when {
                 branch 'main'
@@ -131,22 +131,20 @@ pipeline {
                 echo 'Pushing image to registry...'
                 script {
                     docker.withRegistry('https://ghcr.io', 'github-token') {
-                        def image = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        def image = docker.image("${FULL_IMAGE}")
                         image.push()
                         image.push('latest')
                     }
                 }
             }
         }
+        }
 
         stage('Deploy to Test (VM2)') {
-            when {
-                branch 'main'
-            }
             steps {
                 echo 'Deploying to test environment (VM2)...'
                 sshagent(['vm2-ssh-key']) {
-                    sh '''
+                    sh """
                         ssh -o StrictHostKeyChecking=no user@vm2-ip "
                             docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                             docker stop simple-api-test || true
@@ -155,7 +153,7 @@ pipeline {
                                 -e CODE_VALUE='${CODE_VALUE}' \
                                 ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                         "
-                    '''
+                    """
                 }
             }
         }
@@ -167,7 +165,7 @@ pipeline {
             steps {
                 echo 'Deploying to pre-production environment (VM3)...'
                 sshagent(['vm3-ssh-key']) {
-                    sh '''
+                    sh """
                         ssh -o StrictHostKeyChecking=no user@vm3-ip "
                             docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                             docker stop simple-api-preprod || true
@@ -176,7 +174,7 @@ pipeline {
                                 -e CODE_VALUE='${CODE_VALUE}' \
                                 ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                         "
-                    '''
+                    """
                 }
             }
         }
