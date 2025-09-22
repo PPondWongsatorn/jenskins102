@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = "simple-api"
         DOCKER_TAG = "${BUILD_NUMBER}"
-        REGISTRY = "ghcr.io/PPondWongsatorn"
+        REGISTRY = "ghcr.io/ppondwongsatorn"
         CODE_VALUE = "STUDENT_CODE_${BUILD_NUMBER}"
     }
 
