@@ -144,7 +144,7 @@ pipeline {
                 echo 'Deploying to test environment (VM2)...'
                 sshagent(['vm2']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no user@vm2-ip "
+                        ssh -o StrictHostKeyChecking=no test_vm@192.168.56.102 "
                             docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                             docker stop simple-api-test || true
                             docker rm simple-api-test || true
@@ -165,7 +165,7 @@ pipeline {
                 echo 'Deploying to pre-production environment (VM3)...'
                 sshagent(['vm3']) {
                     sh '''
-                        ssh -o StrictHostKeyChecking=no user@vm3-ip "
+                        ssh -o StrictHostKeyChecking=no test_vm@192.168.56.103 "
                             docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                             docker stop simple-api-preprod || true
                             docker rm simple-api-preprod || true
