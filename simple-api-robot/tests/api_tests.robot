@@ -91,8 +91,8 @@ Test Plus API Response Format
     Delete All Sessions
 
 Test API Performance
-    ${start}=    Evaluate    import('time').time()
+    ${start}=    Evaluate    __import__('time').time()
     ${response}=    GET    ${BASE_URL}/plus/5/6
-    ${end}=    Evaluate    import('time').time()
+    ${end}=    Evaluate    __import__('time').time()
     ${response_time}=    Evaluate    ${end} - ${start}
     Should Be True    ${response_time} < 1.0
