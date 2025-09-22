@@ -52,7 +52,7 @@ pipeline {
                 echo 'Building Docker image...'
                 dir("simple-api") {
                     script {
-                        def image = docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        def image = docker.build("ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}")
                         env.DOCKER_IMAGE_ID = image.id
                     }
                 }
@@ -65,7 +65,7 @@ pipeline {
                 sh '''
                     docker run -d --name test-container -p 5001:5000 \
                         -e CODE_VALUE="${CODE_VALUE}" \
-                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
 
                     sleep 10
 
@@ -95,7 +95,7 @@ pipeline {
                     sh '''
                         docker run -d --name robot-test-container -p 5002:5000 \
                             -e CODE_VALUE="${CODE_VALUE}" \
-                            ${DOCKER_IMAGE}:${DOCKER_TAG}
+                            ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
 
                         sleep 5
                         python3 -m venv robot-venv
@@ -123,18 +123,21 @@ pipeline {
             }
         }
 
-stage('Push to Registry') {
-    steps {
-        echo 'Pushing image to registry...'
-        script {
-            docker.withRegistry("https://ghcr.io", 'git_hub') {
-                def image = docker.image("ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}")
-                image.push()
-                image.push('latest')
+        stage('Push to Registry') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Pushing image to registry...'
+                script {
+                    docker.withRegistry("https://ghcr.io", 'git_hub') {
+                        def image = docker.image("ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        image.push()
+                        image.push('latest')
+                    }
+                }
             }
         }
-    }
-}
 
         stage('Deploy to Test (VM2)') {
             steps {
@@ -142,12 +145,12 @@ stage('Push to Registry') {
                 sshagent(['vm2']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no test_vm@192.168.56.102 "
-                            docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker pull ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                             docker stop simple-api-test || true
                             docker rm simple-api-test || true
                             docker run -d --name simple-api-test -p 5000:5000 \
                                 -e CODE_VALUE='${CODE_VALUE}' \
-                                ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                                ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                         "
                     '''
                 }
@@ -155,17 +158,20 @@ stage('Push to Registry') {
         }
 
         stage('Deploy to Pre-Prod (VM3)') {
+            when {
+                branch 'main'
+            }
             steps {
                 echo 'Deploying to pre-production environment (VM3)...'
                 sshagent(['vm3']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no test_vm@192.168.56.103 "
-                            docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker pull ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                             docker stop simple-api-preprod || true
                             docker rm simple-api-preprod || true
                             docker run -d --name simple-api-preprod -p 5000:5000 \
                                 -e CODE_VALUE='${CODE_VALUE}' \
-                                ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                                ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
                         "
                     '''
                 }
