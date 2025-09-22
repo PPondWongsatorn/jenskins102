@@ -142,7 +142,7 @@ pipeline {
         stage('Deploy to Test (VM2)') {
             steps {
                 echo 'Deploying to test environment (VM2)...'
-                sshagent(['vm2-ssh-key']) {
+                sshagent(['vm2']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no user@vm2-ip "
                             docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
@@ -163,7 +163,7 @@ pipeline {
             }
             steps {
                 echo 'Deploying to pre-production environment (VM3)...'
-                sshagent(['vm3-ssh-key']) {
+                sshagent(['vm3']) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no user@vm3-ip "
                             docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
