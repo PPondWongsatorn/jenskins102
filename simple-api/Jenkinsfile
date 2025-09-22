@@ -127,7 +127,7 @@ pipeline {
             steps {
                 echo 'Pushing image to registry...'
                 script {
-                    docker.withRegistry('https://ghcr.io', 'github-token') {
+                    docker.withRegistry('https://ghcr.io', 'git_hub') {
                         def image = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
                         image.push()
                         image.push('latest')
