@@ -129,14 +129,12 @@ pipeline {
             }
             steps {
                 echo 'Pushing image to registry...'
-                withCredentials([usernamePassword(credentialsId: 'git_hub', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                    sh '''
-                        echoGITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_USER}" --password-stdin
-                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                        docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${REGISTRY}/${DOCKER_IMAGE}:latest
-                        docker push ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                        docker push ${REGISTRY}/${DOCKER_IMAGE}:latest
-                    '''
+                script {
+                    docker.withRegistry('https://ghcr.io', 'github-token') {
+                        def image = docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                        image.push()
+                        image.push('latest')
+                    }
                 }
             }
         }
@@ -145,84 +143,41 @@ pipeline {
             steps {
                 echo 'Deploying to test environment (VM2)...'
                 sshagent(['vm2']) {
-                    withCredentials([usernamePassword(credentialsId: 'git_hub', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                        sh '''
-                            ssh -o StrictHostKeyChecking=no test_vm@192.168.56.102 "
-                                echo '${GITHUB_TOKEN}' | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
-                                docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                                docker stop simple-api-test || true
-                                docker rm simple-api-test || true
-                                docker run -d --name simple-api-test -p 5000:5000 \
-                                    -e CODE_VALUE='${CODE_VALUE}' \
-                                    ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                            "
-                        '''
-                    }
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no test_vm@192.168.56.102 "
+                            docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker stop simple-api-test || true
+                            docker rm simple-api-test || true
+                            docker run -d --name simple-api-test -p 5000:5000 \
+                                -e CODE_VALUE='${CODE_VALUE}' \
+                                ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        "
+                    '''
                 }
             }
         }
 
         stage('Deploy to Pre-Prod (VM3)') {
+            when {
+                branch 'main'
+            }
             steps {
                 echo 'Deploying to pre-production environment (VM3)...'
                 sshagent(['vm3']) {
-                    withCredentials([usernamePassword(credentialsId: 'git_hub', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                        sh '''
-                            ssh -o StrictHostKeyChecking=no test_vm@192.168.56.103 "
-                                echo '${GITHUB_TOKEN}' | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
-                                docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                                docker stop simple-api-preprod || true
-                                docker rm simple-api-preprod || true
-                                docker run -d --name simple-api-preprod -p 5000:5000 \
-                                    -e CODE_VALUE='${CODE_VALUE}' \
-                                    ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                            "
-                        '''
-                    }
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no test_vm@192.168.56.103 "
+                            docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                            docker stop simple-api-preprod || true
+                            docker rm simple-api-preprod || true
+                            docker run -d --name simple-api-preprod -p 5000:5000 \
+                                -e CODE_VALUE='${CODE_VALUE}' \
+                                ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+                        "
+                    '''
                 }
             }
         }
     }
-            steps {
-                echo 'Deploying to test environment (VM2)...'
-                sshagent(['vm2']) {
-                    withCredentials([usernamePassword(credentialsId: 'git_hub', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                        sh '''
-                            ssh -o StrictHostKeyChecking=no test_vm@192.168.56.102 "
-                                echo '${GITHUB_TOKEN}' | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
-                                docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                                docker stop simple-api-test || true
-                                docker rm simple-api-test || true
-                                docker run -d --name simple-api-test -p 5000:5000 \
-                                    -e CODE_VALUE='${CODE_VALUE}' \
-                                    ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                            "
-                        '''
-                    }
-                }
-            }
-        }
-    }
-        stage('Deploy to Pre-Prod (VM3)') {
-            steps {
-                echo 'Deploying to pre-production environment (VM3)...'
-                sshagent(['vm3']) {
-                    withCredentials([usernamePassword(credentialsId: 'git_hub', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                        sh '''
-                            ssh -o StrictHostKeyChecking=no test_vm@192.168.56.103 "
-                                echo '${GITHUB_TOKEN}' | docker login ghcr.io -u ${GITHUB_USER} --password-stdin
-                                docker pull ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                                docker stop simple-api-preprod || true
-                                docker rm simple-api-preprod || true
-                                docker run -d --name simple-api-preprod -p 5000:5000 \
-                                    -e CODE_VALUE='${CODE_VALUE}' \
-                                    ${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
-                            "
-                        '''
-                    }
-                }
-            }
-        }
 
     post {
         always {
