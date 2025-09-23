@@ -8,7 +8,7 @@ def get_code():
     # เปลี่ยนค่านี้ตามที่ผู้สอนกำหนด
     code_value = os.getenv('CODE_VALUE', 'DEFAULT_CODE_12345')
     return jsonify({
-        "code": code_value,
+        "code": code_value+"---55",
         "message": "Code retrieved successfully"
         
     })
