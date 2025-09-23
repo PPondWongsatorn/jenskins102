@@ -10,6 +10,7 @@ def get_code():
     return jsonify({
         "code": code_value,
         "message": "Code retrieved successfully"
+        
     })
 
 @app.route('/plus/<num1>/<num2>', methods=['GET'])
