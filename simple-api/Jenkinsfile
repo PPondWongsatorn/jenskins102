@@ -13,6 +13,7 @@ pipeline {
             steps {
                 echo 'Checking out source code...'
                 checkout scm
+                git clone https://github.com/patiphanpk/jenkins_robot.git simple-api-robot
             }
         }
 
