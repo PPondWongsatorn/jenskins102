@@ -21,6 +21,7 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['output'], 'true')
+    
     # def setUp(self):
     #     self.app = app.test_client()
     #     self.app.testing = True
