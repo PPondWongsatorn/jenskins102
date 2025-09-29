@@ -92,42 +92,42 @@ pipeline {
             }
         }
 
-        // stage('Robot Tests') {
-        //     steps {
-        //         echo 'Running Robot Framework tests...'
-        //         dir('simple-api-robot') {
-        //             sh '''
-        //                 docker run -d --name robot-test-container -p 5002:5000 \
-        //                     -e CODE_VALUE="${CODE_VALUE}" \
-        //                     ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
+        stage('Robot Tests') {
+            steps {
+                echo 'Running Robot Framework tests...'
+                dir('simple-api-robot') {
+                    sh '''
+                        docker run -d --name robot-test-container -p 5002:5000 \
+                            -e CODE_VALUE="${CODE_VALUE}" \
+                            ghcr.io/${REGISTRY}/${DOCKER_IMAGE}:${DOCKER_TAG}
 
-        //                 sleep 5
-        //                 python3 -m venv robot-venv
-        //                 . robot-venv/bin/activate
-        //                 pip install -r requirements.txt
-        //                 mkdir -p ../robot-results
-        //                 robot --variable BASE_URL:http://localhost:5002 \
-        //                       --outputdir ../robot-results tests/
-        //             '''
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             sh 'docker stop robot-test-container || true'
-        //             sh 'docker rm robot-test-container || true'
-        //             publishHTML(target: [
-        //                 allowMissing: false,
-        //                 keepAll: true,
-        //                 alwaysLinkToLastBuild: true,
-        //                 reportDir: 'robot-results',
-        //                 reportFiles: 'report.html',
-        //                 reportName: 'Robot Test Report',
-        //                 escapeUnderscores: false,   // ป้องกัน style/script error บางส่วน
-        //             includes: '**/*'
-        //     ])
-        //         }
-        //     }
-        // }
+                        sleep 5
+                        python3 -m venv robot-venv
+                        . robot-venv/bin/activate
+                        pip install -r requirements.txt
+                        mkdir -p ../robot-results
+                        robot --variable BASE_URL:http://localhost:5002 \
+                              --outputdir ../robot-results tests/
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'docker stop robot-test-container || true'
+                    sh 'docker rm robot-test-container || true'
+                    publishHTML(target: [
+                        allowMissing: false,
+                        keepAll: true,
+                        alwaysLinkToLastBuild: true,
+                        reportDir: 'robot-results',
+                        reportFiles: 'report.html',
+                        reportName: 'Robot Test Report',
+                        escapeUnderscores: false,   // ป้องกัน style/script error บางส่วน
+                    includes: '**/*'
+            ])
+                }
+            }
+        }
 
         stage('Push to Registry') {
             steps {
