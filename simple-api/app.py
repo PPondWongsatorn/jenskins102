@@ -1,11 +1,12 @@
 from flask import Flask, jsonify
+from sympy import isprime
 import os
 
 app = Flask(__name__)
 
 @app.route('/is_prime/<x>', methods=['GET'])
-def is_prime(x):
-    if x.is_prime:
+def isprime(x):
+    if x.isprime:
         return jsonify({
             "output": "true"
         })
