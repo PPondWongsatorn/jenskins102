@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route('/is_prime/<x>', methods=['GET'])
 def isprime(x):
-    if int(x).isprime:
+    if isprime(int(x)):
         return jsonify({
             "output": "true"
         })
