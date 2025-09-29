@@ -4,6 +4,10 @@ from app import app
 
 class TestAPI(unittest.TestCase):
 
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
+
     def true_when_x_is_17(self):
         response = self.app.get('/is_prime/17')
         self.assertEqual(response.status_code, 200)
@@ -21,10 +25,6 @@ class TestAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['output'], 'true')
-    
-    # def setUp(self):
-    #     self.app = app.test_client()
-    #     self.app.testing = True
     
     # def test_health_endpoint(self):
     #     response = self.app.get('/health')
