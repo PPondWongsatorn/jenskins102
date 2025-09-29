@@ -43,9 +43,9 @@ def is_prime(x):
 #     except (ValueError, TypeError) as e:
 #         return jsonify({"error": "Invalid number format"}), 400
 
-# @app.route('/health', methods=['GET'])
-# def health_check():
-#     return jsonify({"status": "healthy", "message": "API is running"})
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy", "message": "API is running"})
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
