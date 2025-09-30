@@ -4,16 +4,32 @@ import os
 
 app = Flask(__name__)
 
-@app.route('/is_prime/<x>', methods=['GET'])
-def is_prime(x):
-    if isprime(int(x)):
-        return jsonify({
-            "output": "true"
-        })
+def is_honor(gpa: float) -> bool:
+    # ตามโจทย์: True เฉพาะช่วง 3.25 <= gpa <= 3.5
+    return 3.25 <= gpa <= 3.5
+
+@app.route('/is2honor/<x>', methods=['GET'])
+def check_honor(x):
+    try:
+        gpa = float(x)
+    except ValueError:
+        return jsonify({"error": "กรุณาส่งค่า GPA ที่เป็นตัวเลข"}), 400
+
+    if is_honor(gpa):
+        return jsonify({"output": "true"})
     else:
-        return jsonify({
-            "output": "false"
-        })
+        return jsonify({"output": "false"})
+
+# @app.route('/is_prime/<x>', methods=['GET'])
+# def is_prime(x):
+#     if isprime(int(x)):
+#         return jsonify({
+#             "output": "true"
+#         })
+#     else:
+#         return jsonify({
+#             "output": "false"
+#         })
 
 
 # @app.route('/getcode', methods=['GET'])
