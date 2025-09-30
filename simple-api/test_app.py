@@ -7,24 +7,42 @@ class TestAPI(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
         self.app.testing = True
-
-    def test_true_when_x_is_17(self):
-        response = self.app.get('/is_prime/17')
-        self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data)
-        self.assertEqual(data['output'], 'true')
-
-    def test_false_when_x_is_36(self):
-        response = self.app.get('/is_prime/36')
+    
+    def test_x_is_3dot7(self):
+        response = self.app.get('/is2honor/3.7')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['output'], 'false')
-    
-    def test_true_when_x_is_13219(self):
-        response = self.app.get('/is_prime/13219')
+
+    def test_x_is_3dot4(self):
+        response = self.app.get('/is2honor/3.4')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data)
         self.assertEqual(data['output'], 'true')
+
+    def test_x_is_3dot1(self):
+        response = self.app.get('/is2honor/3.1')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertEqual(data['output'], 'false')
+
+    # def test_true_when_x_is_17(self):
+    #     response = self.app.get('/is_prime/17')
+    #     self.assertEqual(response.status_code, 200)
+    #     data = json.loads(response.data)
+    #     self.assertEqual(data['output'], 'true')
+
+    # def test_false_when_x_is_36(self):
+    #     response = self.app.get('/is_prime/36')
+    #     self.assertEqual(response.status_code, 200)
+    #     data = json.loads(response.data)
+    #     self.assertEqual(data['output'], 'false')
+    
+    # def test_true_when_x_is_13219(self):
+    #     response = self.app.get('/is_prime/13219')
+    #     self.assertEqual(response.status_code, 200)
+    #     data = json.loads(response.data)
+    #     self.assertEqual(data['output'], 'true')
     
     # def test_health_endpoint(self):
     #     response = self.app.get('/health')
